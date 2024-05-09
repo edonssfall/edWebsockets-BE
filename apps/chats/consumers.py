@@ -14,10 +14,17 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
 
         await set_status_async(self.username, True)
         await self.accept()
+        await self.send_tokens()
 
     async def disconnect(self, close_code):
         await set_status_async(self.username, False)
         await self.channel_layer.group_discard(self.username, self.channel_name)
+
+    async def send_tokens(self):
+        await self.send(text_data=json.dumps({
+            'access': self.scope['cookies']['access'],
+            'refresh': self.scope['cookies']['refresh'],
+        }))
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -50,7 +57,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'send_message',
                 'message': message,
                 'sender': sender,
             }
@@ -60,7 +66,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'send_status',
                 'status': status,
                 'sender': sender,
             }
@@ -68,14 +73,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def send_message(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'chat.message',
             'message': event['message'],
             'sender': event['sender'],
         }))
 
     async def send_status(self, event):
         await self.send(text_data=json.dumps({
-            'type': 'chat.status',
             'status': event['status'],
             'sender': event['sender'],
         }))
