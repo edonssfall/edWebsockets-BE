@@ -1,8 +1,26 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from helpers.middleware_helpers import set_status_async
 import json
 
 
-class SomeConsumer(AsyncJsonWebsocketConsumer):
+class ConnectionConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        self.username = self.scope['url_route']['kwargs']['username']
+
+        await self.channel_layer.group_add(
+            self.username,
+            self.channel_name
+        )
+
+        await set_status_async(self.username, True)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await set_status_async(self.username, False)
+        await self.channel_layer.group_discard(self.username, self.channel_name)
+
+
+class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = f'chat_{self.room_name}'
@@ -13,7 +31,6 @@ class SomeConsumer(AsyncJsonWebsocketConsumer):
         )
 
         await self.accept()
-
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)

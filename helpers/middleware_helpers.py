@@ -1,6 +1,8 @@
-from channels.db import database_sync_to_async
-from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
+from channels.db import database_sync_to_async
+from django.utils import timezone
+
+from apps.chats.models import Status
 import requests
 
 User = get_user_model()
@@ -8,8 +10,8 @@ User = get_user_model()
 
 def receive_user(host, token):
     return requests.get(
-        f'{host}/profile/is-logged',
-        headers={'Authorization': f"Bearer {token['access']}"},
+        f'{host}/own-profile',
+        headers={'Authorization': f'Bearer {token["access"]}'},
     )
 
 
@@ -19,18 +21,18 @@ def get_user_async(email):
 
 
 @database_sync_to_async
-def create_user_async(username, email):
-    return User.objects.create(
-        username=username['username'],
-        email=email
-    )
+def set_status_async(username, online):
+    user = User.objects.get(username=username)
+    status, created = Status.objects.get_or_create(user=user)
+    if not online:
+        status.last_seen = timezone.now()
+    status.online = online
+    status.save()
 
 
 async def check_response(response, scope):
     if response.status_code == 200:
         session_data = response.json()
-        key, value = scope['query_string'].decode('utf-8').split('=')
-        username = {key: value}
         email = session_data['email']
 
         async def get_user():
@@ -38,6 +40,7 @@ async def check_response(response, scope):
             return user
 
         async def create_user():
+            username = scope.get('url_route')['kwargs']['username']
             user = await create_user_async(username, email)
             return user
 
