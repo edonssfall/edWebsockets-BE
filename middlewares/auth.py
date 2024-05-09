@@ -31,5 +31,5 @@ class TokenAuthMiddleware(BaseMiddleware):
             if response.status_code == 200:
                 response = response.json()
                 response = receive_user(backend_auth, response)
-            scope = await check_response(response, scope)
+                scope = await check_response(response, scope)
         return await super().__call__(scope, receive, send)
