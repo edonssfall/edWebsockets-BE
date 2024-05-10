@@ -1,6 +1,10 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from helpers.middleware_helpers import set_status_async
+from channels.db import database_sync_to_async
+from django.contrib.auth import get_user_model
 import json
+
+User = get_user_model()
 
 
 class ConnectionConsumer(AsyncJsonWebsocketConsumer):
@@ -19,6 +23,24 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code):
         await set_status_async(self.username, False)
         await self.channel_layer.group_discard(self.username, self.channel_name)
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        search_query = data.get('search_query')
+
+        if search_query:
+            users = await self.filter_users(search_query)
+            await self.send(text_data=json.dumps({
+                'users': users
+            }))
+
+    @database_sync_to_async
+    def filter_users(self, search_query):
+        users = User.objects.filter(username__icontains=search_query)
+        return [{
+            'id': user.id,
+            'username': user.username
+                 } for user in users]
 
     async def send_tokens(self):
         await self.send(text_data=json.dumps({

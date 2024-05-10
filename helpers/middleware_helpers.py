@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
-from apps.chats.models import Status
 from django.utils import timezone
+from chats.models import Status
 import requests
 
 User = get_user_model()
