@@ -30,7 +30,6 @@ class Status(models.Model):
 class Room(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    name = models.CharField(max_length=100)
     description = models.TextField()
     users = models.ManyToManyField(User, related_name='rooms')
 
