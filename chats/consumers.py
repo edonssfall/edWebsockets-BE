@@ -24,14 +24,6 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         await set_status_async(self.username, False)
         await self.channel_layer.group_discard(self.username, self.channel_name)
 
-    async def send_tokens(self):
-        await self.send(text_data=json.dumps({
-            'access': self.scope['cookies']['access'],
-            'refresh': self.scope['cookies']['refresh'],
-        }))
-
-
-class SearchConsumer(AsyncJsonWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         search_query = data.get('search_query')
@@ -49,6 +41,12 @@ class SearchConsumer(AsyncJsonWebsocketConsumer):
             'id': user.id,
             'username': user.username
                  } for user in users]
+
+    async def send_tokens(self):
+        await self.send(text_data=json.dumps({
+            'access': self.scope['cookies']['access'],
+            'refresh': self.scope['cookies']['refresh'],
+        }))
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
