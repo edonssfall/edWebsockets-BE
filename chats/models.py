@@ -5,6 +5,9 @@ import uuid
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    """
+    Custom user model.
+    """
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     bio = models.TextField(null=True, blank=True)
@@ -19,6 +22,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Status(models.Model):
+    """
+    Model status.
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     online = models.BooleanField(default=False)
     last_seen = models.DateTimeField(null=True, blank=True)
@@ -28,6 +34,9 @@ class Status(models.Model):
 
 
 class Room(models.Model):
+    """
+    Model room.
+    """
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField()
@@ -35,6 +44,9 @@ class Room(models.Model):
 
 
 class Message(models.Model):
+    """
+    Model message.
+    """
     room_uuid = models.UUIDField()
     file = models.FileField(upload_to='files/', null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)

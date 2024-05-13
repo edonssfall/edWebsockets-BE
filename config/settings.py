@@ -147,6 +147,7 @@ AUTH_USER_MODEL = 'chats.User'
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
 
+# Redis setting for sockets
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -158,8 +159,3 @@ CHANNEL_LAYERS = {
 }
 
 ASGI_APPLICATION = 'config.asgi.application'
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-    ],
-}

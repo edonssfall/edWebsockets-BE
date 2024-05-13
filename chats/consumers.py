@@ -9,7 +9,18 @@ User = get_user_model()
 
 
 class ConnectionConsumer(AsyncJsonWebsocketConsumer):
+    """
+    Consumer for handling connection and disconnection of users.
+    Check tokens and send them to the frontend.
+    Check if the user is online and send the status to the frontend.
+    Send the list of chats to the frontend.
+    By disconnecting, set the user status to offline.
+    """
     async def connect(self):
+        """
+        Connect to the websocket.
+        Set status to online, add the user to the own group, and send the list of chats.
+        """
         self.username = self.scope['url_route']['kwargs']['username']
 
         await self.channel_layer.group_add(
@@ -28,10 +39,18 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         }))
 
     async def disconnect(self, close_code):
+        """
+        Disconnect from the websocket.
+        Set status to offline and remove the user from the own group.
+        """
         await set_status_async(self.username, False)
         await self.channel_layer.group_discard(self.username, self.channel_name)
 
     async def receive(self, text_data):
+        """
+        Receive the message from the frontend.
+        Check if the message is a search query to find users or a chat to create a new chat.
+        """
         data = json.loads(text_data)
         search_query = data.get('search_query', None)
         chat = data.get('chat', None)
@@ -49,6 +68,9 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def create_or_get_room(self, user):
+        """
+        Create a new chat room or get the existing one.
+        """
         user = User.objects.get(username=user)
         room, _ = Room.objects.get_or_create()
         room.users.add(user.id)
@@ -57,6 +79,9 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_chats(self, user):
+        """
+        Get the list of chats for the user.
+        """
         chats = []
         for chat in Room.objects.filter(users=user.id):
             chat_data = {}
@@ -79,6 +104,9 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         return chats
 
     async def send_tokens(self):
+        """
+        Send tokens to the frontend.
+        """
         await self.send(text_data=json.dumps({
             'access': self.scope['cookies']['access'],
             'refresh': self.scope['cookies']['refresh'],
@@ -86,7 +114,14 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
+    """
+    Consumer for handling chat messages and statuses.
+    Connect to the chat room, send messages to the frontend, and save them to the database.
+    """
     async def connect(self):
+        """
+        Connect to the chat room, send messages to the frontend, and save them to the database.
+        """
         self.room_name = self.scope['url_route']['kwargs']['room_name']
         self.room_group_name = self.room_name
 
@@ -102,9 +137,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.send_messages(messages)
 
     async def disconnect(self, close_code):
+        """
+        Disconnect from the chat room.
+        """
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
+        """
+        Receive the message from the frontend.
+        Check the message type and send the message or status to the frontend.
+        """
         data = await self.decode_json(text_data)
         message_type = data.get('type', None)
         if message_type == 'chat.content':
@@ -114,6 +156,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.chat_status(data)
 
     async def chat_message(self, data):
+        """
+        Send the message to the chat room.
+        """
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -124,6 +169,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def chat_status(self, data):
+        """
+        Send the status to the chat room.
+        """
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -135,6 +183,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_messages(self):
+        """
+        Get the list of messages from the database.
+        """
         messages = []
         for message in Message.objects.filter(room_uuid=self.room_name):
             message_data = {}
@@ -155,6 +206,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     # TODO: Implement this method. now hardcoded timestamp from frontend
     @database_sync_to_async
     def save_message(self, message):
+        """
+        Save the message to the database.
+        """
         Message.objects.get_or_create(
             room_uuid=self.room_name,
             sender=User.objects.get(username=message['sender']),
