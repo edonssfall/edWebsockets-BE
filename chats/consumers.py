@@ -1,7 +1,7 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from chats.utils import set_status_async, filter_users
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from chats.utils import set_status_async
 from chats.models import Room, Message
 import json
 
@@ -37,7 +37,7 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         chat = data.get('chat', None)
 
         if search_query:
-            users = await self.filter_users(search_query)
+            users = await filter_users(search_query)
             await self.send(text_data=json.dumps({
                 'users': users
             }))

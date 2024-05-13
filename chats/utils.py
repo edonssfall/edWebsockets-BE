@@ -17,7 +17,7 @@ def set_status_async(username, online):
 
 
 @database_sync_to_async
-def filter_users(self, search_query):
+def filter_users(search_query):
     users = User.objects.filter(username__icontains=search_query)
     return [{
         'id': user.id,
