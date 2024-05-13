@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
-from django.utils import timezone
 from chats.models import Status
 import requests
 
@@ -27,16 +26,6 @@ def create_user_async(username, email):
 @database_sync_to_async
 def get_user_async(email):
     return User.objects.get(email=email)
-
-
-@database_sync_to_async
-def set_status_async(username, online):
-    user = User.objects.get(username=username)
-    status, created = Status.objects.get_or_create(user=user)
-    if not online:
-        status.last_seen = timezone.now()
-    status.online = online
-    status.save()
 
 
 async def check_response(response, scope):

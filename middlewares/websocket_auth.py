@@ -1,4 +1,4 @@
-from helpers.middleware_helpers import check_response, receive_user
+from middlewares.middleware_helpers import receive_user, check_response
 from channels.middleware import BaseMiddleware
 from django.contrib.auth import get_user_model
 from dotenv import load_dotenv
