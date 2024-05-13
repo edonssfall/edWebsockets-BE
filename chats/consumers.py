@@ -1,9 +1,8 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-
-from chats.models import Room, Message
-from helpers.middleware_helpers import set_status_async
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
+from chats.utils import set_status_async
+from chats.models import Room, Message
 import json
 
 User = get_user_model()
@@ -19,8 +18,14 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         )
 
         await set_status_async(self.username, True)
+        chats = await self.get_chats(self.scope['user'])
+
         await self.accept()
+
         await self.send_tokens()
+        await self.send(text_data=json.dumps({
+            'chats': chats
+        }))
 
     async def disconnect(self, close_code):
         await set_status_async(self.username, False)
@@ -51,12 +56,27 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         return room
 
     @database_sync_to_async
-    def filter_users(self, search_query):
-        users = User.objects.filter(username__icontains=search_query)
-        return [{
-            'id': user.id,
-            'username': user.username
-                 } for user in users]
+    def get_chats(self, user):
+        chats = []
+        for chat in Room.objects.filter(users=user.id):
+            chat_data = {}
+            chat_data['uuid'] = str(chat.uuid)
+            chat_data['description'] = chat.description
+            users = []
+            for user in chat.users.all():
+                if user != self.scope['user']:
+                    users.append({
+                        'id': user.id,
+                        'username': user.username,
+                        'avatar': user.avatar.url if user.avatar else None
+                    })
+                chat_data['users'] = users
+            message = Message.objects.filter(room_uuid=chat.uuid).last()
+            if message:
+                chat_data['last_message'] = message.content
+                chat_data['timestamp'] = message.timestamp.astimezone().strftime('%Y-%m-%d %H:%M:%S')
+            chats.append(chat_data)
+        return chats
 
     async def send_tokens(self):
         await self.send(text_data=json.dumps({
@@ -103,7 +123,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             }
         )
 
-    async def chat_status(self,data):
+    async def chat_status(self, data):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
