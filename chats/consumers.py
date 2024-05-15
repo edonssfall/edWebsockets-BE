@@ -21,14 +21,14 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         Connect to the websocket.
         Set status to online, add the user to the own group, and send the list of chats.
         """
-        self.username = self.scope['url_route']['kwargs']['username']
+        self.username = self.scope['path'].split('/')[-1]
 
         await self.channel_layer.group_add(
             self.username,
             self.channel_name
         )
 
-        await set_status_async(self.username, True)
+        set_status_async(self.username, True)
         chats = await self.get_chats(self.scope['user'])
 
         await self.accept()
