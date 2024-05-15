@@ -5,7 +5,7 @@ from middlewares.websocket_auth import TokenAuthMiddleware
 from unittest.mock import patch, Mock, AsyncMock
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from .consumers import ConnectionConsumer
+from .consumers import ConnectionConsumer, ChatConsumer
 from .utils import create_or_get_room
 from .models import Status
 
@@ -211,7 +211,7 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
             await middleware(self.scope, None, None)
 
 
-class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
+class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
 
     def setUp(self):
         self.room = 'test-room'
@@ -222,6 +222,7 @@ class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
         """
         # Create a test user and set the URL for the websocket connection
         self.user = await create_user_async('testuser', 'test@test.com')
+        await create_user_async('testuser2', 'test2@test.com')
         self.room = await create_or_get_room(self.user)
         self.url = f'/ws/{self.user.username}'
 
@@ -269,7 +270,12 @@ class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
         status = await self.get_status()
         self.assertTrue(status.online)
 
+        # Disconnect from the websocket
+        await communicator.send_json_to({'search_query': 'testuser2'})
 
+        # Check if the status is offline after disconnecting
+        response = await communicator.receive_json_from()
+        self.assertIn('users', response)
 
         # Check if status is offline after disconnect
         await communicator.disconnect()
@@ -277,3 +283,34 @@ class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
         # Check if the status is offline after disconnecting
         status = await self.get_status()
         self.assertFalse(status.online)
+
+
+class TestsChatConsumer(ChannelsLiveServerTestCase):
+
+    async def initialize_user(self):
+        """
+        Helper method to initialize a user for testing.
+        """
+        # Create a test user and set the URL for the websocket connection
+        self.user = await create_user_async('testuser', 'test@example.com')
+        self.url = f'/ws/{self.user.username}'
+
+        await create_user_async('testuser2', 'test2@example.com')
+
+    async def test_create_room(self):
+        """
+        Test creating a chat room.
+        """
+        # Initialize a test user
+        await self.initialize_user()
+
+        # Create a websocket communicator for the ConnectionConsumer
+        communicator = WebsocketCommunicator(ChatConsumer.as_asgi(), self.url)
+
+        # Connect to the websocket consumer
+        connected, _ = await communicator.connect()
+
+        await communicator.send_json_to({'search_query': 'testuser2'})
+
+        response = await communicator.receive_json_from()
+        self.assertIn('users', response)
