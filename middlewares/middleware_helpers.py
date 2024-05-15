@@ -6,7 +6,7 @@ import requests
 User = get_user_model()
 
 
-def receive_user(host, token):
+def receive_user(host: str, token: dict) -> requests.Response:
     """
     Get the user data from the AUTH-backend.
     """
@@ -17,7 +17,7 @@ def receive_user(host, token):
 
 
 @database_sync_to_async
-def create_user_async(username, email):
+def create_user_async(username: str, email: str) -> User:
     """
     Create a new user.
     Create a new status for the user.
@@ -31,14 +31,14 @@ def create_user_async(username, email):
 
 
 @database_sync_to_async
-def get_user_async(email):
+def get_user_async(email: str) -> User:
     """
     Get the user by email.
     """
     return User.objects.get(email=email)
 
 
-async def check_response(response):
+async def check_response(response: requests.Response) -> dict:
     """
     Check the response from the AUTH-backend.
     """
@@ -46,7 +46,7 @@ async def check_response(response):
         raise Exception('Invalid response status code')
     return response.json()
 
-async def get_or_create_user(session_data, scope):
+async def get_or_create_user(session_data: dict, scope: dict) -> dict:
     """
     Get or create a user based on the session data.
     """

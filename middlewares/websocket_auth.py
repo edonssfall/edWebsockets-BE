@@ -16,7 +16,7 @@ class TokenAuthMiddleware(BaseMiddleware):
     from the first Django service
     for websocket connections
     """
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         cookies = dict(scope['cookies'])
         if 'access' in cookies:
             # Send a request to the auth Django service to authenticate the user
