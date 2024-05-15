@@ -1,7 +1,7 @@
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
+from chats.models import Status, Room
 from django.utils import timezone
-from chats.models import Status
 
 User = get_user_model()
 
@@ -29,3 +29,14 @@ def filter_users(search_query):
         'id': user.id,
         'username': user.username
     } for user in users]
+
+
+@database_sync_to_async
+def create_or_get_room(user):
+    """
+    Create a new chat room or get the existing one.
+    """
+    user = User.objects.get(username=user)
+    room, _ = Room.objects.get_or_create()
+    room.users.add(user.id)
+    return room

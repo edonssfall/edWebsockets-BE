@@ -1,5 +1,5 @@
+from chats.utils import set_status_async, filter_users, create_or_get_room
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from chats.utils import set_status_async, filter_users
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
 from chats.models import Room, Message
@@ -28,7 +28,7 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
             self.channel_name
         )
 
-        set_status_async(self.username, True)
+        await set_status_async(self.username, True)
         chats = await self.get_chats(self.scope['user'])
 
         await self.accept()
@@ -61,21 +61,11 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
                 'users': users
             }))
         elif chat:
-            room = await self.create_or_get_room(chat)
+            room = await create_or_get_room(chat)
+            room.users.add(self.scope['user'].id)
             await self.send(text_data=json.dumps({
                 'room_uuid': str(room.uuid)
             }))
-
-    @database_sync_to_async
-    def create_or_get_room(self, user):
-        """
-        Create a new chat room or get the existing one.
-        """
-        user = User.objects.get(username=user)
-        room, _ = Room.objects.get_or_create()
-        room.users.add(user.id)
-        room.users.add(self.scope['user'].id)
-        return room
 
     @database_sync_to_async
     def get_chats(self, user):

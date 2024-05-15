@@ -3,9 +3,11 @@ from middlewares.middleware_helpers import create_user_async, get_user_async, re
 from channels.testing import WebsocketCommunicator, ChannelsLiveServerTestCase
 from middlewares.websocket_auth import TokenAuthMiddleware
 from unittest.mock import patch, Mock, AsyncMock
+from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from channels.layers import get_channel_layer
 from .consumers import ConnectionConsumer
+from .utils import create_or_get_room
+from .models import Status
 
 User = get_user_model()
 
@@ -211,13 +213,24 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
 
 class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
 
+    def setUp(self):
+        self.room = 'test-room'
+
     async def initialize_user(self):
         """
         Helper method to initialize a user for testing.
         """
         # Create a test user and set the URL for the websocket connection
         self.user = await create_user_async('testuser', 'test@test.com')
+        self.room = await create_or_get_room(self.user)
         self.url = f'/ws/{self.user.username}'
+
+    @database_sync_to_async
+    def get_status(self):
+        """
+        Helper method to get the status of the user.
+        """
+        return Status.objects.get(user=self.user)
 
     async def test_connection(self):
         """
@@ -247,3 +260,20 @@ class ConnectionWebsocketTests(ChannelsLiveServerTestCase):
         # Check if the response contains both access and refresh tokens
         self.assertIn('access', response)
         self.assertIn('refresh', response)
+
+        # Receive chats
+        response = await communicator.receive_json_from()
+        self.assertIn('chats', response)
+
+        # Check if the connection was successful and status created in the database with online status
+        status = await self.get_status()
+        self.assertTrue(status.online)
+
+
+
+        # Check if status is offline after disconnect
+        await communicator.disconnect()
+
+        # Check if the status is offline after disconnecting
+        status = await self.get_status()
+        self.assertFalse(status.online)
