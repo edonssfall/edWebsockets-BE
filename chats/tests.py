@@ -260,9 +260,6 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Connect to the websocket consumer
         connected, _ = await communicator.connect()
 
-        # Send tokens as JSON to the consumer
-        await communicator.send_json_to({'access': access_token, 'refresh': refresh_token})
-
         # Receive a JSON response from the consumer
         response = await communicator.receive_json_from()
 
@@ -278,7 +275,7 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         status = await get_status(self.user)
         self.assertTrue(status.online)
 
-        # Disconnect from the websocket
+        # Find users with a search query
         await communicator.send_json_to({'search_query': 'testuser2'})
 
         # Check if the status is offline after disconnecting
@@ -291,6 +288,41 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Check if the status is offline after disconnecting
         status = await get_status(self.user)
         self.assertFalse(status.online)
+
+    async def test_connection_with_only_user(self) -> None:
+        """
+        Test establishing a websocket connection and sending tokens.
+        """
+        # Initialize a test user
+        await self.initialize_user()
+
+        # Create a websocket communicator for the ConnectionConsumer
+        communicator = WebsocketCommunicator(ConnectionConsumer.as_asgi(), f'/ws/')
+
+        # Simulate sending tokens from the authentication service
+        access_token = 'access_token_value'
+        refresh_token = 'refresh_token_value'
+        communicator.scope['cookies'] = {'access': access_token, 'refresh': refresh_token}
+        communicator.scope['user'] = self.user
+
+        # Connect to the websocket consumer
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        # Receive a JSON response from the consumer
+        response = await communicator.receive_json_from()
+
+        # Check if the response contains both access and refresh tokens
+        self.assertIn('access', response)
+        self.assertIn('refresh', response)
+
+        # Receive chats
+        response = await communicator.receive_json_from()
+        self.assertIn('chats', response)
+
+        # Check if the connection was successful and status created in the database with online status
+        status = await get_status(self.user)
+        self.assertTrue(status.online)
 
 
 class TestsChatConsumer(ChannelsLiveServerTestCase):

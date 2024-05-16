@@ -19,21 +19,25 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
-        self.user = None
+        self.username = None
 
     async def connect(self) -> None:
         """
         Connect to the websocket.
         Set status to online, add the user to the own group, and send the list of chats.
         """
-        self.user = self.scope['user']
+        path_list = self.scope['path'].split('/')
+        if len(path_list) != 2:
+            self.username = self.scope['user'].username
+        else:
+            self.username = path_list[-1]
 
         await self.channel_layer.group_add(
-            self.user.username,
+            self.username,
             self.channel_name
         )
 
-        await set_status_async(self.user.username, True)
+        await set_status_async(self.username, True)
         chats = await self.get_chats(self.scope['user'])
 
         await self.accept()
@@ -48,8 +52,8 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         Disconnect from the websocket.
         Set status to offline and remove the user from the own group.
         """
-        await set_status_async(self.user.username, False)
-        await self.channel_layer.group_discard(self.user.username, self.channel_name)
+        await set_status_async(self.username, False)
+        await self.channel_layer.group_discard(self.username, self.channel_name)
 
     async def receive(self, text_data: str) -> None:
         """
