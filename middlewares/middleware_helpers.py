@@ -46,17 +46,16 @@ async def check_response(response: requests.Response) -> dict:
         raise Exception('Invalid response status code')
     return response.json()
 
-async def get_or_create_user(session_data: dict, scope: dict) -> dict:
+async def get_user(session_data: dict, scope: dict) -> dict:
     """
     Get or create a user based on the session data.
     """
     email = session_data['user']['email']
-    username = scope.get('url_route')['kwargs']['username']
 
     try:
         user = await get_user_async(email)
     except User.DoesNotExist:
-        user = await create_user_async(username, email)
+        raise Exception('User does not exist')
 
     scope['user'] = user
     scope['cookies']['access'] = session_data['access']
