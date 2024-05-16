@@ -1,4 +1,4 @@
-from middlewares.middleware_helpers import receive_user, check_response
+from middlewares.middleware_helpers import receive_user, check_response, get_or_create_user
 from channels.middleware import BaseMiddleware
 from django.contrib.auth import get_user_model
 from dotenv import load_dotenv
@@ -16,12 +16,13 @@ class TokenAuthMiddleware(BaseMiddleware):
     from the first Django service
     for websocket connections
     """
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send) -> None:
         cookies = dict(scope['cookies'])
         if 'access' in cookies:
-            # Send a request to the first Django service to authenticate the user
+            # Send a request to the auth Django service to authenticate the user
             response = receive_user(backend_auth, cookies)
-            scope = await check_response(response, scope)
+            response = await check_response(response)
+            scope = await get_or_create_user(response, scope)
         elif 'refresh' in cookies:
             # Send a request to the first Django service to refresh the token
             response = requests.post(
@@ -31,5 +32,6 @@ class TokenAuthMiddleware(BaseMiddleware):
             if response.status_code == 200:
                 response = response.json()
                 response = receive_user(backend_auth, response)
-                scope = await check_response(response, scope)
+                response = await check_response(response)
+                scope = await get_or_create_user(response, scope)
         return await super().__call__(scope, receive, send)

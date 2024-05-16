@@ -6,7 +6,7 @@ import requests
 User = get_user_model()
 
 
-def receive_user(host, token):
+def receive_user(host: str, token: dict) -> requests.Response:
     """
     Get the user data from the AUTH-backend.
     """
@@ -17,7 +17,7 @@ def receive_user(host, token):
 
 
 @database_sync_to_async
-def create_user_async(username, email):
+def create_user_async(username: str, email: str) -> User:
     """
     Create a new user.
     Create a new status for the user.
@@ -31,37 +31,35 @@ def create_user_async(username, email):
 
 
 @database_sync_to_async
-def get_user_async(email):
+def get_user_async(email: str) -> User:
     """
     Get the user by email.
     """
     return User.objects.get(email=email)
 
 
-async def check_response(response, scope):
+async def check_response(response: requests.Response) -> dict:
     """
     Check the response from the AUTH-backend.
-    If the response is 200, get the user data and create or get the user.
     """
-    if response.status_code == 200:
-        session_data = response.json()
-        scope['cookies']['access'] = session_data['access']
-        scope['cookies']['refresh'] = session_data['refresh']
-        email = session_data['user']['email']
+    if response.status_code != 200:
+        raise Exception('Invalid response status code')
+    return response.json()
 
-        async def get_user():
-            user = await get_user_async(email)
-            return user
+async def get_or_create_user(session_data: dict, scope: dict) -> dict:
+    """
+    Get or create a user based on the session data.
+    """
+    email = session_data['user']['email']
+    username = scope.get('url_route')['kwargs']['username']
 
-        async def create_user():
-            username = scope.get('url_route')['kwargs']['username']
-            user = await create_user_async(username, email)
-            return user
+    try:
+        user = await get_user_async(email)
+    except User.DoesNotExist:
+        user = await create_user_async(username, email)
 
-        try:
-            user = await get_user()
-        except User.DoesNotExist:
-            user = await create_user()
+    scope['user'] = user
+    scope['cookies']['access'] = session_data['access']
+    scope['cookies']['refresh'] = session_data['refresh']
 
-        scope['user'] = user
     return scope
