@@ -26,7 +26,11 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         Connect to the websocket.
         Set status to online, add the user to the own group, and send the list of chats.
         """
-        self.username = self.scope['path'].split('/')[-1]
+        path_list = self.scope['path'].split('/')
+        if len(path_list) != 2:
+            self.username = self.scope['user'].username
+        else:
+            self.username = path_list[-1]
 
         await self.channel_layer.group_add(
             self.username,
@@ -113,6 +117,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     Consumer for handling chat messages and statuses.
     Connect to the chat room, send messages to the frontend, and save them to the database.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.room_group_name = None
+        self.room_name = None
+
     async def connect(self) -> None:
         """
         Connect to the chat room, send messages to the frontend, and save them to the database.

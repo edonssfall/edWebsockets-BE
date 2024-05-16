@@ -1,5 +1,5 @@
 from middlewares.middleware_helpers import create_user_async, get_user_async, receive_user, check_response, \
-    get_or_create_user
+    get_user
 from channels.testing import WebsocketCommunicator, ChannelsLiveServerTestCase
 from .utils import create_or_get_room, save_message, get_status
 from middlewares.websocket_auth import TokenAuthMiddleware
@@ -37,7 +37,9 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
 
     @patch('middlewares.middleware_helpers.requests.get')
     def test_receive_user(self, mock_requests_get) -> None:
-        # Test the receive_user function
+        """
+        Test the receive_user function
+        """
         mocked_response = {
             'username': 'testuser',
             'email': 'test@test.com',
@@ -61,7 +63,9 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         self.assertEqual(response.json.return_value, mocked_response)
 
     async def test_create_user_async(self) -> None:
-        # Test the create_user_async function
+        """
+        Test the create_user_async function
+        """
         # Create a user and check if it matches the expected values
         user = await create_user_async(self.username, self.email)
         self.assertEqual(user.username, self.username)
@@ -69,7 +73,9 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         self.assertTrue(user.is_active)
 
     async def test_get_user_async(self) -> None:
-        # Test the get_user_async function
+        """
+        Test the get_user_async function
+        """
         # Create a user, then fetch it and check if it matches the expected values
         await create_user_async(self.username, self.email)
         user = await get_user_async(self.email)
@@ -78,7 +84,9 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         self.assertTrue(user.is_active)
 
     async def test_valid_response(self) -> None:
-        # Test the check_response function with a valid response (status code 200)
+        """
+        Test the check_response function with a valid response (status code 200)
+        """
         response_mock = Mock()
         response_mock.status_code = 200
         response_mock.json.return_value = {'access': 'access_token', 'refresh': 'refresh_token'}
@@ -87,7 +95,9 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         self.assertEqual(result, {'access': 'access_token', 'refresh': 'refresh_token'})
 
     async def test_invalid_response(self) -> None:
-        # Test the check_response function with an invalid response (status code 401)
+        """
+        Test the check_response function with an invalid response (status code 401)
+        """
         response_mock = Mock()
         response_mock.status_code = 401
 
@@ -95,10 +105,13 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         with self.assertRaises(Exception):
             await check_response(response_mock)
 
-    async def test_get_or_create_user_create(self) -> None:
-        # Test the get_or_create_user function when creating a new user
+    async def test_get_user_create(self) -> None:
+        """
+        Test the get_or_create_user function when creating a new user
+        """
         # Set up the scope with session data
-        scope = await get_or_create_user(self.session_data, self.scope)
+        await create_user_async(self.username, self.email)
+        scope = await get_user(self.session_data, self.scope)
 
         # Check if the user was created and matches the expected values
         self.assertEqual(scope['user'].email, self.email)
@@ -106,13 +119,20 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         self.assertEqual(scope['cookies']['access'], self.session_data['access'])
         self.assertEqual(scope['cookies']['refresh'], self.session_data['refresh'])
 
+    async def test_get_user_create_invalid(self) -> None:
+        """
+        Test get_user function when the user does not exist
+        """
+        with self.assertRaises(Exception):
+            await get_user(self.session_data, self.scope)
+
     async def test_get_or_create_user_exists(self) -> None:
         # Test the get_or_create_user function when the user already exists
         # Create a user
         user = await create_user_async(self.username, self.email)
 
         # Set up the scope with session data
-        scope = await get_or_create_user(self.session_data, self.scope)
+        scope = await get_user(self.session_data, self.scope)
 
         # Check if the existing user matches the expected values
         self.assertEqual(scope['user'], user)
@@ -125,6 +145,7 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         # Set up the mock to return a positive response
         mock_requests_get.return_value.status_code = 200
         mock_requests_get.return_value.json.return_value = self.session_data
+        await create_user_async(self.username, self.email)
 
         # Set up the scope with access and refresh tokens
         self.scope['cookies']['access'] = 'access_token'
@@ -154,6 +175,8 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         mock_requests_get.return_value.json.return_value = self.session_data
         mock_requests_post.return_value.status_code = 200
         mock_requests_post.return_value.json.return_value = self.session_data
+
+        await create_user_async(self.username, self.email)
 
         # Set up the scope with refresh token but without access token
         self.scope['cookies']['refresh'] = 'refresh_token'
@@ -197,7 +220,7 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
         """
         # Mock negative responses for both GET and POST requests
         mock_requests_get.return_value.status_code = 401
-        mock_requests_post.return_value.status_code = 401
+        mock_requests_post.return_value.status_code = 200
 
         # Create an instance of the middleware
         middleware = TokenAuthMiddleware(AsyncMock())
@@ -208,10 +231,6 @@ class TestsMiddlewareHelpers(ChannelsLiveServerTestCase):
 
 
 class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
-
-    def setUp(self):
-        self.room = 'test-room'
-
     async def initialize_user(self) -> None:
         """
         Helper method to initialize a user for testing.
@@ -219,7 +238,7 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Create a test user and set the URL for the websocket connection
         self.user = await create_user_async('testuser', 'test@test.com')
         await create_user_async('testuser2', 'test2@test.com')
-        self.room = await create_or_get_room(self.user)
+        await create_or_get_room(self.user)
         self.url = f'/ws/{self.user.username}'
 
     async def test_connection(self) -> None:
@@ -241,9 +260,6 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Connect to the websocket consumer
         connected, _ = await communicator.connect()
 
-        # Send tokens as JSON to the consumer
-        await communicator.send_json_to({'access': access_token, 'refresh': refresh_token})
-
         # Receive a JSON response from the consumer
         response = await communicator.receive_json_from()
 
@@ -259,7 +275,7 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         status = await get_status(self.user)
         self.assertTrue(status.online)
 
-        # Disconnect from the websocket
+        # Find users with a search query
         await communicator.send_json_to({'search_query': 'testuser2'})
 
         # Check if the status is offline after disconnecting
@@ -272,6 +288,41 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Check if the status is offline after disconnecting
         status = await get_status(self.user)
         self.assertFalse(status.online)
+
+    async def test_connection_with_only_user(self) -> None:
+        """
+        Test establishing a websocket connection and sending tokens.
+        """
+        # Initialize a test user
+        await self.initialize_user()
+
+        # Create a websocket communicator for the ConnectionConsumer
+        communicator = WebsocketCommunicator(ConnectionConsumer.as_asgi(), f'/ws/')
+
+        # Simulate sending tokens from the authentication service
+        access_token = 'access_token_value'
+        refresh_token = 'refresh_token_value'
+        communicator.scope['cookies'] = {'access': access_token, 'refresh': refresh_token}
+        communicator.scope['user'] = self.user
+
+        # Connect to the websocket consumer
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        # Receive a JSON response from the consumer
+        response = await communicator.receive_json_from()
+
+        # Check if the response contains both access and refresh tokens
+        self.assertIn('access', response)
+        self.assertIn('refresh', response)
+
+        # Receive chats
+        response = await communicator.receive_json_from()
+        self.assertIn('chats', response)
+
+        # Check if the connection was successful and status created in the database with online status
+        status = await get_status(self.user)
+        self.assertTrue(status.online)
 
 
 class TestsChatConsumer(ChannelsLiveServerTestCase):
