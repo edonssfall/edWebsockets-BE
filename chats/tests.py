@@ -6,6 +6,7 @@ from middlewares.websocket_auth import TokenAuthMiddleware
 from .consumers import ConnectionConsumer, ChatConsumer
 from unittest.mock import patch, Mock, AsyncMock
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from datetime import datetime
 
 User = get_user_model()
@@ -336,7 +337,7 @@ class TestsChatConsumer(ChannelsLiveServerTestCase):
         self.email2 = 'test2@example.com'
 
         self.content = 'Test message'
-        self.timestamp = datetime.now()
+        self.timestamp = timezone.now()
 
     def check_timestamp(self, response_data: dict) -> None:
         """
