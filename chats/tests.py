@@ -268,6 +268,10 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         self.assertIn('access', response)
         self.assertIn('refresh', response)
 
+        # Receive username
+        response = await communicator.receive_json_from()
+        self.assertIn('username', response)
+
         # Receive chats
         response = await communicator.receive_json_from()
         self.assertIn('chats', response)
@@ -312,10 +316,18 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
 
         # Receive a JSON response from the consumer
         response = await communicator.receive_json_from()
+        self.assertIn('username', response)
+
+        # Receive a JSON response from the consumer
+        response = await communicator.receive_json_from()
 
         # Check if the response contains both access and refresh tokens
         self.assertIn('access', response)
         self.assertIn('refresh', response)
+
+        # Receive username
+        response = await communicator.receive_json_from()
+        self.assertIn('username', response)
 
         # Receive chats
         response = await communicator.receive_json_from()
@@ -324,6 +336,24 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
         # Check if the connection was successful and status created in the database with online status
         status = await get_status(self.user)
         self.assertTrue(status.online)
+
+    async def test_connection_error(self):
+        """
+        Test establishing a websocket connection with an error.
+        """
+        # Initialize a test user
+        await self.initialize_user()
+
+        # Create a websocket communicator for the ConnectionConsumer
+        communicator = WebsocketCommunicator(ConnectionConsumer.as_asgi(), '/ws/')
+
+        # Connect to the websocket consumer
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        # Receive a JSON response from the consumer
+        response = await communicator.receive_json_from()
+        self.assertIn('error', response)
 
 
 class TestsChatConsumer(ChannelsLiveServerTestCase):

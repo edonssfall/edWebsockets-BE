@@ -7,6 +7,15 @@ User = get_user_model()
 
 
 @database_sync_to_async
+def set_username_async(username: str, user: User):
+    """
+    Set the status of the user to online or offline.
+    """
+    user = User.objects.get(email=user.email)
+    user.username = username
+    user.save()
+
+@database_sync_to_async
 def set_status_async(username: str, online: bool):
     """
     Set the status of the user to online or offline.
