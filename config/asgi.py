@@ -11,10 +11,9 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from middlewares.websocket_auth import TokenAuthMiddleware
 from django.core.asgi import get_asgi_application
 from channels.auth import AuthMiddlewareStack
+from django.urls import path, re_path
 from dotenv import load_dotenv
-from django.urls import path
 import os
-
 
 load_dotenv()
 
@@ -25,9 +24,8 @@ application = ProtocolTypeRouter({
     'http': get_asgi_application(),
     'websocket': AuthMiddlewareStack(
         URLRouter([
-            path('ws/<str:username>', TokenAuthMiddleware(ConnectionConsumer.as_asgi()), name='user'),
+            re_path(r'^ws/(?P<username>[a-zA-Z0-9]*)/?$', TokenAuthMiddleware(ConnectionConsumer.as_asgi()), name='user'),
             path('ws/chat/<str:room_name>', TokenAuthMiddleware(ChatConsumer.as_asgi()), name='chat'),
         ])
     )
 })
-

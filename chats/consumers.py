@@ -1,4 +1,4 @@
-from chats.utils import set_status_async, filter_users, create_or_get_room, save_message
+from chats.utils import set_status_async, filter_users, create_or_get_room, save_message, set_username_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
@@ -26,26 +26,35 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         Connect to the websocket.
         Set status to online, add the user to the own group, and send the list of chats.
         """
-        path_list = self.scope['path'].split('/')
-        if len(path_list) != 2:
-            self.username = self.scope['user'].username
-        else:
-            self.username = path_list[-1]
-
-        await self.channel_layer.group_add(
-            self.username,
-            self.channel_name
-        )
-
-        await set_status_async(self.username, True)
-        chats = await self.get_chats(self.scope['user'])
-
         await self.accept()
 
-        await self.send_tokens()
-        await self.send(text_data=json.dumps({
-            'chats': chats
-        }))
+        path_list = self.scope['path'].strip('/').split('/')
+        if len(path_list) > 1 and 'user' in self.scope:
+            self.username = path_list[-1]
+            await set_username_async(self.username, self.scope['user'])
+        elif 'user' in self.scope and  len(self.scope['user'].username) > 0:
+            self.username = self.scope['user'].username
+            await self.send_json({'username': self.username})
+
+        if not self.username is None:
+
+            await self.channel_layer.group_add(
+                self.username,
+                self.channel_name
+            )
+
+            await set_status_async(self.username, True)
+            chats = await self.get_chats(self.scope['user'])
+
+            await self.send_tokens()
+            await self.send(text_data=json.dumps({
+                'username': self.username
+            }))
+            await self.send(text_data=json.dumps({
+                'chats': chats
+            }))
+        else:
+            await self.send_json({'error': 'No username'})
 
     async def disconnect(self, close_code: int) -> None:
         """
