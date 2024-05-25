@@ -5,7 +5,7 @@ for automatic authentication using refresh tokens stored in cookies and a search
 
 ## Features
 - Django version: 5.0
-- Django Channels version: 3.5.0
+- Django Channels version: 3.0.5
 - WebSocket-based chat functionality
 - Middleware for automatic authentication using refresh tokens stored in cookies
 - Search function with WebSocket

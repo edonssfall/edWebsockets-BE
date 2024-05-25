@@ -130,14 +130,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(args, kwargs)
         self.room_group_name = None
-        self.room_name = None
 
     async def connect(self) -> None:
         """
         Connect to the chat room, send messages to the frontend, and save them to the database.
         """
-        self.room_name = self.scope['path'].split('/')[-1]
-        self.room_group_name = self.room_name
+        self.room_group_name = self.scope['path'].split('/')[-1]
 
         await self.channel_layer.group_add(
             self.room_group_name,
@@ -164,7 +162,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         data = await self.decode_json(text_data)
         message_type = data.get('type', None)
         if message_type == 'chat.content':
-            await save_message(self.room_name, data)
+            await save_message(self.room_group_name, data)
             await self.send_message(data)
         elif message_type == 'chat.status':
             await self.send_status(data)
@@ -176,11 +174,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'chat.content',
+                'type': 'chat_content',
                 'content': data.get('content'),
                 'sender': data.get('sender'),
             }
         )
+
+    async def chat_content(self, event) -> None:
+        """
+        Send the message to the frontend.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'chat.content',
+            'content': event['content'],
+            'sender': event['sender'],
+        }))
 
     async def send_status(self, data: dict) -> None:
         """
@@ -189,11 +197,21 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                'type': 'chat.status',
+                'type': 'chat_status',
                 'status': data.get('status'),
                 'sender': data.get('sender'),
             }
         )
+
+    async def chat_status(self, event) -> None:
+        """
+        Send the status to the frontend.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'chat.status',
+            'status': event['status'],
+            'sender': event['sender'],
+        }))
 
     @database_sync_to_async
     def get_messages(self) -> list:
@@ -201,7 +219,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         Get the list of messages from the database.
         """
         messages = []
-        for message in Message.objects.filter(room_uuid=self.room_name):
+        for message in Message.objects.filter(room_uuid=self.room_group_name):
             message_data = {}
             if message.file:
                 message_data['file'] = message.file.url

@@ -22,10 +22,10 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.getenv('DJANGO_SETTINGS_MODUL
 # urls for the websocket
 application = ProtocolTypeRouter({
     'http': get_asgi_application(),
-    'websocket': AuthMiddlewareStack(
+    'websocket': AuthMiddlewareStack(TokenAuthMiddleware(
         URLRouter([
-            re_path(r'^ws/(?P<username>[a-zA-Z0-9]*)/?$', TokenAuthMiddleware(ConnectionConsumer.as_asgi()), name='user'),
-            path('ws/chat/<str:room_name>', TokenAuthMiddleware(ChatConsumer.as_asgi()), name='chat'),
+            re_path(r'^(?P<username>[a-zA-Z0-9]*)/?$', ConnectionConsumer.as_asgi(), name='user'),
+            path('chat/<str:room_name>', ChatConsumer.as_asgi(), name='chat'),
         ])
-    )
+    ))
 })
