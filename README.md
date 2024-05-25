@@ -19,19 +19,23 @@ for automatic authentication using refresh tokens stored in cookies and a search
     ```bash
     cd edWebsockets-BE
     ```
-3. Create a virtual environment
+3. Copy the `.env.example` file and rename it to `.env`
+    ```bash
+    cp .env.example .env
+    ```
+4. Create a virtual environment
     ```bash
     python3 -m venv venv
     ```
-4. Activate the virtual environment
+5. Activate the virtual environment
     ```bash
     source venv/bin/activate
     ```
-5. Install the dependencies
+6. Install the dependencies
     ```bash
     pip install -r requirements.txt
     ```
-6. Run the migrations
+7. Run the migrations
     ```bash
     python manage.py migrate
     ```
