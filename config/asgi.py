@@ -24,8 +24,8 @@ application = ProtocolTypeRouter({
     'http': get_asgi_application(),
     'websocket': AuthMiddlewareStack(TokenAuthMiddleware(
         URLRouter([
-            re_path(r'^(?P<username>[a-zA-Z0-9]*)/?$', ConnectionConsumer.as_asgi(), name='user'),
-            path('chat/<str:room_name>', ChatConsumer.as_asgi(), name='chat'),
+            re_path(r'^ws/(?P<username>[a-zA-Z0-9]*)/?$', ConnectionConsumer.as_asgi(), name='user'),
+            path('ws/chat/<str:room_name>', ChatConsumer.as_asgi(), name='chat'),
         ])
     ))
 })
