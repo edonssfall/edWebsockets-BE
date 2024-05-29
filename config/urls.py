@@ -13,9 +13,12 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from rest_framework import routers
 from django.contrib import admin
 from django.urls import path
 
+router = routers.DefaultRouter(trailing_slash=False)
+
 urlpatterns = [
-    path('admin-ws/', admin.site.urls),
+    path('admin-ws', admin.site.urls),
 ]
