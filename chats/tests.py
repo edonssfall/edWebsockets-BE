@@ -316,20 +316,16 @@ class TestsConnectionWebsocket(ChannelsLiveServerTestCase):
 
         # Receive a JSON response from the consumer
         response = await communicator.receive_json_from()
-        self.assertIn('username', response)
+        self.assertIn('access', response)
+        self.assertIn('refresh', response)
 
         # Receive a JSON response from the consumer
         response = await communicator.receive_json_from()
 
         # Check if the response contains both access and refresh tokens
-        self.assertIn('access', response)
-        self.assertIn('refresh', response)
-
-        # Receive username
-        response = await communicator.receive_json_from()
         self.assertIn('username', response)
 
-        # Receive chats
+        # Receive username
         response = await communicator.receive_json_from()
         self.assertIn('chats', response)
 
@@ -426,6 +422,7 @@ class TestsChatConsumer(ChannelsLiveServerTestCase):
         # Receive initial data from the WebSocket connection
         await communicator.receive_json_from()
         await communicator.receive_json_from()
+        await communicator.receive_json_from()
 
         # Send a message to create a room with another user
         await communicator.send_json_to({'chat': 'testuser2'})
@@ -470,6 +467,9 @@ class TestsChatConsumer(ChannelsLiveServerTestCase):
 
         # Receive initial data from the WebSocket connection
         await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
+        self.assertIn('username', response)
+
         response = await communicator.receive_json_from()
         self.assertIn('chats', response)
 

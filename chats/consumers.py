@@ -28,10 +28,13 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         """
         await self.accept()
 
-        self.username = self.scope['user'].username
-        await self.send_json({'username': self.username})
+        if 'user' in self.scope and 'username' in self.scope['user'] and 'cookies' in self.scope:
 
-        if not self.username is None:
+            self.username = self.scope['user'].username
+
+            await self.send_tokens()
+
+            await self.send_json({'username': self.username})
 
             await self.channel_layer.group_add(
                 self.username,
@@ -41,10 +44,6 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
             await set_status_async(self.username, True)
             chats = await self.get_chats(self.scope['user'])
 
-            await self.send_tokens()
-            await self.send(text_data=json.dumps({
-                'username': self.username
-            }))
             await self.send(text_data=json.dumps({
                 'chats': chats
             }))
