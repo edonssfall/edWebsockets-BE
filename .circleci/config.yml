@@ -70,16 +70,7 @@ jobs:
             DOCKER_COMPOSE_FILE: $DOCKER_COMPOSE_FILE
             APP_PATH: $APP_PATH
           command: |
-            # Copy files to EC2 instance
-            tar -czf app.tar.gz .
-            scp -i ~/.ssh/id_rsa app.tar.gz $SSH_USER@$AWS_EC2_HOST:~/app.tar.gz
-            
-            # Run remote commands to pull new images and restart the services
-            ssh -i ~/.ssh/id_rsa $SSH_USER@$AWS_EC2_HOST << 'EOF'
-              docker-compose -f $DOCKER_COMPOSE_FILE down
-              tar -xzf app.tar.gz -C $APP_PATH --overwrite
-              docker-compose -f $DOCKER_COMPOSE_FILE up -d
-            EOF
+            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C ~/ && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d'
 
 workflows:
   version: 2
