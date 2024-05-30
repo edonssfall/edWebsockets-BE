@@ -28,7 +28,7 @@ jobs:
       - run:
           name: Wait for Redis
           command: dockerize -wait tcp://localhost:6379 -timeout 1m
-      -run:
+      - run:
           name: Install dependencies
           command: pip install -r requirements.txt
       - run:
