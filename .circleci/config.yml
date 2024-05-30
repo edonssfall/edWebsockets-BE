@@ -1,5 +1,11 @@
 version: 2.1
 
+executors:
+  python-executor:
+    docker:
+      - image: cimg/python:3.11
+    working_directory: ~/repo
+
 jobs:
   setup:
     docker:
@@ -21,6 +27,9 @@ jobs:
       - run:
           name: Wait for Postgres
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: Wait for Redis
+          command: dockerize -wait tcp://localhost:6379 -timeout 1m
       - run:
           name: Install dependencies
           command: pip install -r requirements.txt
