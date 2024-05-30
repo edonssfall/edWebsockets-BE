@@ -3,9 +3,23 @@ version: 2.1
 jobs:
   test:
     docker:
-    - image: cimg/postgres:16.3
-    - image: cimg/redis:7.2
-    - image: cimg/python:3.11
+      - image: cimg/python:3.9
+        environment:
+          CHANNEL_HOST: $CHANNEL_HOST
+          CHANNEL_SECRET_KEY: $CHANNEL_SECRET_KEY
+          DB_HOST: $DB_HOST
+          DB_PORT: $DB_PORT
+          DB_USER: $DB_USER
+          DEBUG: $DEBUG
+          DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
+          POSTGRES_DB_CHAT: $POSTGRES_DB_CHAT
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      - image: cimg/postgres:16.3
+        environment:
+          POSTGRES_USER: $DB_USER
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          POSTGRES_DB: POSTGRES_DB_CHAT
+      - image: cimg/redis:7.2
     steps:
       - checkout
       - run:
@@ -14,20 +28,18 @@ jobs:
       - run:
           name: Wait for Redis
           command: dockerize -wait tcp://localhost:6379 -timeout 1m
+      -run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
       - run:
           name: Run tests
           command: python manage.py test
 
   deploy:
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/aws:2024.03
     steps:
       - checkout
-      - run:
-          name: Install AWS CLI
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y awscli
       - run:
           name: Deploy to AWS
           command: |
