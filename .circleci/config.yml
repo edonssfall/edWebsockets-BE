@@ -56,4 +56,4 @@ workflows:
             - test
           filters:
             branches:
-              only: deploy/prod
+              only: release/prod
