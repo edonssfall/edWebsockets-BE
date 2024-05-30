@@ -22,20 +22,7 @@ jobs:
       - image: cimg/redis:7.2.5
       - image: cimg/python:3.11
       - image: cimg/postgres:16.3
-        environment:
-          POSTGRES_HOST_AUTH_METHOD: false
-          POSTGRES_USER: $DB_USER
-          POSTGRES_DB: $POSTGRES_DB_CHAT
-          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-          CHANNEL_HOST: $CHANNEL_HOST
-          CHANNEL_SECRET_KEY: $CHANNEL_SECRET_KEY
-          DB_HOST: $DB_HOST
-          DB_PORT: $DB_PORT
-          DB_USER: $DB_USER
-          DEBUG: $DEBUG
-          DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
-          POSTGRES_DB_CHAT: $POSTGRES_DB_CHAT
-          SECRET_KEY: $SECRET_KEY
+    parallelism: 3
     executor: python-executor
     steps:
       - checkout
