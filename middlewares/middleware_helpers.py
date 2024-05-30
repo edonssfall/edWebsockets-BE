@@ -56,7 +56,7 @@ async def get_user(session_data: dict, scope: dict) -> dict:
         user = await get_user_async(email)
     except User.DoesNotExist:
         try:
-            username = scope['raw_path'].decode().strip('/')
+            username = scope['raw_path'].decode().strip('/').split('/')[-1]
             user = await create_user_async(username, email)
         except AttributeError:
             raise Exception('No username in the path')
