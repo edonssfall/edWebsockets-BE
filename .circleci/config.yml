@@ -1,31 +1,95 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/executor-intro/ & https://circleci.com/docs/configuration-reference/#executor-job
+executors:
+  python-executor:
     docker:
-      # Specify the version you desire here
-      # See: https://circleci.com/developer/images/image/cimg/base
-      - image: cimg/base:current
+      - image: circleci/python:3.11.5
+    working_directory: ~/repo
 
-    # Add steps to the job
-    # See: https://circleci.com/docs/jobs-steps/#steps-overview & https://circleci.com/docs/configuration-reference/#steps
+jobs:
+  setup:
+    docker:
+      - image: circleci/python:3.11.5
+    executor: python-executor
     steps:
-      # Checkout the code as the first step.
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Install dependencies
+          command: pip install -r requirements.txt
 
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
+  test:
+    docker:
+      - image: circleci/python:3.11.5
+      - image: circleci/postgres:16.3
+        environment:
+          POSTGRES_USER: $DB_USER
+          POSTGRES_DB: $POSTGRES_DB_CHAT
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          CHANNEL_HOST: $CHANNEL_HOST
+          CHANNEL_SECRET_KEY: $CHANNEL_SECRET_KEY
+          DB_HOST: $DB_HOST
+          DB_PORT: $DB_PORT
+          DB_USER: $DB_USER
+          DEBUG: $DEBUG
+          DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
+          POSTGRES_DB_CHAT: $POSTGRES_DB_CHAT
+          SECRET_KEY: $SECRET_KEY
+      - image: redis
+    executor: python-executor
+    steps:
+      - checkout
+      - run:
+          name: Wait for Postgres
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: Wait for Redis
+          command: dockerize -wait tcp://localhost:6379 -timeout 1m
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests
+          command: python manage.py test
+
+  deploy:
+    docker:
+      - image: circleci/python:3.9
+    executor: python-executor
+    steps:
+      - checkout
+      - run:
+          name: Install AWS CLI
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y awscli
+      - run:
+          name: Deploy to AWS
+          environment:
+            AWS_EC2_HOST: $AWS_EC2_HOST
+            SSH_USER: $SSH_USER
+            DOCKER_COMPOSE_FILE: $DOCKER_COMPOSE_FILE
+            APP_PATH: $APP_PATH
+          command: |
+            # Copy files to EC2 instance
+            tar -czf app.tar.gz .
+            scp app.tar.gz $SSH_USER@$AWS_EC2_HOST:~/app.tar.gz
+
+            # Run remote commands to pull new images and restart the services
+            ssh $SSH_USER@$AWS_EC2_HOST << 'EOF'
+              docker-compose -f $DOCKER_COMPOSE_FILE down
+              tar -xzf app.tar.gz -С $APP_PATH --overwrite
+              docker-compose -f $DOCKER_COMPOSE_FILE up -d
+            EOF
+
 workflows:
-  say-hello-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  version: 2
+  test-deploy:
     jobs:
-      - say-hello
+      - setup
+      - test
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: deploy/prod
