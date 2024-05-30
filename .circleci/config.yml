@@ -1,9 +1,14 @@
 version: 2.1
 
+executors:
+    python-default:
+        docker:
+        - image: cimg/python:3.11
+        working_directory: ~/app
+
 jobs:
   setup:
-    docker:
-      - image: cimg/python:3.11
+    executor: python-default
     steps:
       - checkout
       - run:
@@ -12,9 +17,9 @@ jobs:
 
   test:
     docker:
-      - image: cimg/python:3.11
       - image: cimg/postgres:16.3
       - image: cimg/redis:7.2
+    executor: python-default
     steps:
       - checkout
       - run:
@@ -24,15 +29,11 @@ jobs:
           name: Wait for Redis
           command: dockerize -wait tcp://localhost:6379 -timeout 1m
       - run:
-          name: Install dependencies
-          command: pip install -r requirements.txt
-      - run:
           name: Run tests
           command: python manage.py test
 
   deploy:
-    docker:
-      - image: cimg/python:3.11
+    executor: python-default
     steps:
       - checkout
       - run:
