@@ -1,0 +1,59 @@
+version: 2.1
+
+jobs:
+  setup:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+
+  test:
+    docker:
+      - image: cimg/python:3.11
+      - image: cimg/postgres:16.3
+      - image: cimg/redis:7.2
+    steps:
+      - checkout
+      - run:
+          name: Wait for Postgres
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: Wait for Redis
+          command: dockerize -wait tcp://localhost:6379 -timeout 1m
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Run tests
+          command: python manage.py test
+
+  deploy:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Install AWS CLI
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y awscli
+      - run:
+          name: Deploy to AWS
+          command: |
+            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C ~/ && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d'
+
+workflows:
+  version: 2
+  test-deploy:
+    jobs:
+      - setup
+      - test
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: deploy/prod
