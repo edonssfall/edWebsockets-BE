@@ -28,13 +28,8 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         """
         await self.accept()
 
-        path_list = self.scope['path'].strip('/').split('/')
-        if len(path_list) > 1 and 'user' in self.scope:
-            self.username = path_list[-1]
-            await set_username_async(self.username, self.scope['user'])
-        elif 'user' in self.scope and  len(self.scope['user'].username) > 0:
-            self.username = self.scope['user'].username
-            await self.send_json({'username': self.username})
+        self.username = self.scope['user'].username
+        await self.send_json({'username': self.username})
 
         if not self.username is None:
 
