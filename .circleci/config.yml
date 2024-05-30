@@ -3,13 +3,13 @@ version: 2.1
 executors:
   python-executor:
     docker:
-      - image: circleci/python:3.11.9
+      - image: circleci/python:3.11
     working_directory: ~/repo
 
 jobs:
   setup:
     docker:
-      - image: circleci/python:3.11.9
+      - image: circleci/python:3.11
     executor: python-executor
     steps:
       - checkout
@@ -19,7 +19,7 @@ jobs:
 
   test:
     docker:
-      - image: circleci/python:3.11.9
+      - image: circleci/python:3.11
       - image: circleci/postgres:16.3
         environment:
           POSTGRES_USER: $DB_USER
@@ -53,7 +53,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/python:3.11.9
+      - image: circleci/python:3.11
     executor: python-executor
     steps:
       - checkout
