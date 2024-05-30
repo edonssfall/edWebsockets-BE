@@ -19,8 +19,9 @@ jobs:
 
   test:
     docker:
+      - image: cimg/redis:7.2.5
       - image: cimg/python:3.11
-      - image: cimg/postgres:16.2
+      - image: cimg/postgres:16.3
         environment:
           POSTGRES_USER: $DB_USER
           POSTGRES_DB: $POSTGRES_DB_CHAT
@@ -34,7 +35,6 @@ jobs:
           DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
           POSTGRES_DB_CHAT: $POSTGRES_DB_CHAT
           SECRET_KEY: $SECRET_KEY
-      - image: cimg/redis:7.2.5
     executor: python-executor
     steps:
       - checkout
