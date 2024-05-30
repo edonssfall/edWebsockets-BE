@@ -22,7 +22,6 @@ jobs:
       - image: cimg/redis:7.2.5
       - image: cimg/python:3.11
       - image: cimg/postgres:16.3
-    parallelism: 3
     executor: python-executor
     steps:
       - checkout
