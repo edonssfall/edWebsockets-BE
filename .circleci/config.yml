@@ -1,15 +1,6 @@
 version: 2.1
 
 jobs:
-  setup:
-    docker:
-      - image: cimg/python:3.11
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: pip install -r requirements.txt
-
   test:
     docker:
       - image: cimg/python:3.11
@@ -32,24 +23,18 @@ jobs:
 
   deploy:
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/aws:2024.03
     steps:
       - checkout
       - run:
-          name: Install AWS CLI
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y awscli
-      - run:
           name: Deploy to AWS
           command: |
-            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C ~/ && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d'
+            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C ~/ && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up'
 
 workflows:
   version: 2
   test-deploy:
     jobs:
-      - setup
       - test
       - deploy:
           requires:
