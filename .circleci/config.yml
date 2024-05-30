@@ -1,28 +1,11 @@
 version: 2.1
 
-executors:
-  python-default:
-    docker:
-      - image: cimg/python:3.11
-      - image: cimg/postgres:16.3
-        environment:
-            POSTGRES_USER: $POSTGRES_USER
-            POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-            POSTGRES_DB: $POSTGRES_DB
-      - image: cimg/redis:7.2
-    working_directory: ~/app
-
 jobs:
-  setup:
-    executor: python-default
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: pip install -r requirements.txt
-
   test:
-    executor: python-default
+    docker:
+    - image: cimg/postgres:16.3
+    - image: cimg/redis:7.2
+    - image: cimg/python:3.11
     steps:
       - checkout
       - run:
@@ -36,7 +19,8 @@ jobs:
           command: python manage.py test
 
   deploy:
-    executor: python-default
+    docker:
+      - image: cimg/python:3.11
     steps:
       - checkout
       - run:
