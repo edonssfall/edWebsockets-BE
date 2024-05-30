@@ -28,7 +28,7 @@ class ConnectionConsumer(AsyncJsonWebsocketConsumer):
         """
         await self.accept()
 
-        if 'user' in self.scope and 'username' in self.scope['user'] and 'cookies' in self.scope:
+        if 'user' in self.scope and 'cookies' in self.scope:
 
             self.username = self.scope['user'].username
 
