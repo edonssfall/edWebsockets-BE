@@ -3,13 +3,13 @@ version: 2.1
 executors:
   python-executor:
     docker:
-      - image: circleci/python:3.11.2
+      - image: circleci/python:3.11.9
     working_directory: ~/repo
 
 jobs:
   setup:
     docker:
-      - image: circleci/python:3.11.2
+      - image: circleci/python:3.11.9
     executor: python-executor
     steps:
       - checkout
@@ -19,7 +19,7 @@ jobs:
 
   test:
     docker:
-      - image: circleci/python:3.11.2
+      - image: circleci/python:3.11.9
       - image: circleci/postgres:16.3
         environment:
           POSTGRES_USER: $DB_USER
@@ -34,7 +34,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE
           POSTGRES_DB_CHAT: $POSTGRES_DB_CHAT
           SECRET_KEY: $SECRET_KEY
-      - image: redis
+      - image: redis:7.2.5
     executor: python-executor
     steps:
       - checkout
@@ -53,7 +53,7 @@ jobs:
 
   deploy:
     docker:
-      - image: circleci/python:3.11.2
+      - image: circleci/python:3.11.9
     executor: python-executor
     steps:
       - checkout
