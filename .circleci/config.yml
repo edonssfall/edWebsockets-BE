@@ -22,7 +22,6 @@ jobs:
       - image: cimg/redis:7.2.5
       - image: cimg/python:3.11
       - image: cimg/postgres:16.3
-    executor: python-executor
     steps:
       - checkout
       - run:
@@ -51,11 +50,6 @@ jobs:
             sudo apt-get install -y awscli
       - run:
           name: Deploy to AWS
-          environment:
-            AWS_EC2_HOST: $AWS_EC2_HOST
-            SSH_USER: $SSH_USER
-            DOCKER_COMPOSE_FILE: $DOCKER_COMPOSE_FILE
-            APP_PATH: $APP_PATH
           command: |
             tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C ~/ && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d'
 
