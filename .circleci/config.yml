@@ -30,13 +30,8 @@ jobs:
           name: Deploy to AWS
           command: |
             tar -czf app.tar.gz . 
-            scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null app.tar.gz $SSH_USER@$AWS_EC2_HOST:~/
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST \<<EOF
-              tar -xzf ~/app.tar.gz -C $APP_PATH --overwrite
-              rm ~/app.tar.gz 
-              docker-compose -f $DOCKER_COMPOSE_FILE down 
-              docker-compose -f $DOCKER_COMPOSE_FILE up -d
-            EOF
+            scp app.tar.gz $SSH_USER@$AWS_EC2_HOST:~/
+            ssh $SSH_USER@$AWS_EC2_HOST "tar -xzf ~/app.tar.gz -C $APP_PATH --overwrite && rm ~/app.tar.gz && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d"
 
 workflows:
   version: 2
