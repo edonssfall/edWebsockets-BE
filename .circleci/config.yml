@@ -22,7 +22,7 @@ jobs:
           command: python manage.py test
       - run:
             name: show env
-            command: echo $APP_PATH
+            command: echo ${APP_PATH}
 
   deploy:
     docker:
