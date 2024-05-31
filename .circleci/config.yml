@@ -20,17 +20,6 @@ jobs:
       - run:
           name: Run tests
           command: python manage.py test
-      - run:
-          name: show env
-          command: |
-            if [ -z "${APP_PATH}" ]; then
-              echo "APP_PATH is not set."
-            else
-              echo "APP_PATH is set to ${APP_PATH}"
-            fi
-      - run:
-          name: env
-          command: printenv
 
   deploy:
     docker:
@@ -40,7 +29,7 @@ jobs:
       - run:
           name: Deploy to AWS
           command: |
-            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'sudo rm -rf $APP_PATH/* && cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C $APP_PATH && rm ~/app.tar.gz && docker-compose -f $DOCKER_COMPOSE_FILE down && docker-compose -f $DOCKER_COMPOSE_FILE up -d'
+            tar -czf - . | ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $SSH_USER@$AWS_EC2_HOST 'cat > ~/app.tar.gz && tar -xzf ~/app.tar.gz -C $APP_PATH && rm ~/app.tar.gz && sudo docker-compose -f $DOCKER_COMPOSE_FILE down && sudo docker-compose -f $DOCKER_COMPOSE_FILE up -d'
 
 workflows:
   version: 2
