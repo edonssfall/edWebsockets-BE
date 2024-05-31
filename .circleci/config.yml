@@ -21,8 +21,16 @@ jobs:
           name: Run tests
           command: python manage.py test
       - run:
-            name: show env
-            command: echo ${APP_PATH}
+          name: show env
+          command: |
+            if [ -z "${APP_PATH}" ]; then
+              echo "APP_PATH is not set."
+            else
+              echo "APP_PATH is set to ${APP_PATH}"
+            fi
+      - run:
+          name: env
+          command: printenv
 
   deploy:
     docker:
